@@ -11,6 +11,7 @@ public class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDel
     }
     
     public enum CaptureStatus {
+        case cameraNotAvailable
         case initializing
         case ready
     }
@@ -67,17 +68,13 @@ public class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDel
         guard
             await isAuthorized,
             let defaultCamera = AVCaptureDevice.default(for: .video),
-            let captureDevice = try? AVCaptureDeviceInput(device: defaultCamera)
-        else {
-            print("Failed to initialize video capture")
-            return
-        }
-        
-        guard
+            let captureDevice = try? AVCaptureDeviceInput(device: defaultCamera),
             captureSession.canAddInput(captureDevice),
             captureSession.canAddOutput(photoOutput)
         else {
-            print("Failed to add video input/output")
+            await MainActor.run {
+                captureStatus = .cameraNotAvailable
+            }
             return
         }
         
