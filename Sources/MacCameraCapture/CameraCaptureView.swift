@@ -42,7 +42,6 @@ public struct CameraCaptureView: View
                 self.status = .capturedPhoto(image: newPhoto)
             }
             Controls(status: $status, cameraController: cameraController, onPhotoCaptured: onPhotoCaptured, labels: labels)
-                .disabled(cameraController.captureStatus != .ready)
         }
         .frame(minWidth: 600, minHeight: 400)
     }
@@ -63,6 +62,7 @@ public struct CameraCaptureView: View
         let cameraNotAvailable: String
     }
 
+    @MainActor
     struct Controls : View
     {
         @Environment(\.dismiss) private var dismiss
@@ -94,6 +94,7 @@ public struct CameraCaptureView: View
             }
             .buttonStyle(.plain)
             .foregroundColor(.red)
+            .disabled(cameraController.captureStatus != .ready)
             .alert("Capture failed", isPresented: $isShowingCaptureError) {
                 Button("OK", role: .cancel, action: {})
             } message: {
