@@ -1,7 +1,7 @@
 import SwiftUI
 
 @MainActor
-public struct CameraCaptureSheet: View
+public struct CameraCaptureView: View
 {
     enum Status : Equatable {
         case livePreview
@@ -147,7 +147,7 @@ public struct CameraCaptureSheet: View
 
 
 #Preview {
-    CameraCaptureSheet { image in
+    CameraCaptureView { image in
         print("Captured image with size ", image.size)
     }
 }

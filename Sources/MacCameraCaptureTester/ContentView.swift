@@ -20,7 +20,7 @@ struct ContentView: View
         }
         .padding()
         .sheet(isPresented: $isShowingCaptureSheet) {
-            CameraCaptureSheet { image in
+            CameraCaptureView { image in
                 self.image = image
             }
         }
