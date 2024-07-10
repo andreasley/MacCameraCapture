@@ -3,7 +3,7 @@ import MacCameraCapture
 
 struct ContentView: View
 {
-    @State private var isShowingCaptureSheet = true
+    @State private var isShowingCaptureSheet = false
     @State private var image: NSImage?
     
     var body: some View {
