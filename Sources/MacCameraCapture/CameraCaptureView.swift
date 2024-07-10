@@ -18,7 +18,7 @@ public struct CameraCaptureView: View
     public let onPhotoCaptured: (NSImage) -> Void
     public let labels: LocalizedLabels
 
-    public init(onPhotoCaptured: @escaping (NSImage) -> Void, labels: LocalizedLabels = .init(save: "Save", cancel: "Cancel"))
+    public init(onPhotoCaptured: @escaping (NSImage) -> Void, labels: LocalizedLabels = .init(save: "Save", cancel: "Cancel", initializingCamera: "Initializing camera...", cameraNotAvailable: "Camera not available"))
     {
         self.onPhotoCaptured = onPhotoCaptured
         self.labels = labels
@@ -29,7 +29,7 @@ public struct CameraCaptureView: View
             Group {
                 switch status {
                 case .livePreview:
-                    CameraPreview(cameraController: cameraController)
+                    CameraPreview(cameraController: cameraController, labels: labels)
                 case .capturedPhoto(let capturedPhoto):
                     PhotoPreview(image: capturedPhoto)
                 }
@@ -49,14 +49,18 @@ public struct CameraCaptureView: View
     
     public struct LocalizedLabels
     {
-        public init(save: String, cancel: String)
+        public init(save: String, cancel: String, initializingCamera: String, cameraNotAvailable: String)
         {
             self.save = save
             self.cancel = cancel
+            self.initializingCamera = initializingCamera
+            self.cameraNotAvailable = cameraNotAvailable
         }
         
         let save: String
         let cancel: String
+        let initializingCamera: String
+        let cameraNotAvailable: String
     }
 
     struct Controls : View
