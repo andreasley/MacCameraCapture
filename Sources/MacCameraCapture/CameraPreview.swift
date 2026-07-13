@@ -10,7 +10,6 @@ struct CameraPreview : View
         Group {
             if cameraController?.captureStatus == .ready, let previewLayer = cameraController?.previewLayer {
                 AVCaptureVideoPreviewLayerViewRepresentable(previewLayer: previewLayer)
-                    .scaleEffect(x: -1, y: 1)
             } else if cameraController?.captureStatus == .initializing {
                 ProgressView(labels.initializingCamera)
                     .progressViewStyle(.circular)

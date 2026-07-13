@@ -45,6 +45,16 @@ public class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDel
     @MainActor
     public private(set) var selectedCamera: AVCaptureDevice?
     
+    /// Whether the live preview is flipped horizontally, as people expect from a mirror
+    /// when sitting in front of a camera. Captured photos are never mirrored.
+    /// Defaults to true for the built-in camera and false for all other cameras.
+    @MainActor
+    public var isMirrored: Bool = false {
+        didSet {
+            applyMirroring()
+        }
+    }
+    
     public var isAuthorized: Bool {
         get async {
             let status = AVCaptureDevice.authorizationStatus(for: .video)
@@ -115,12 +125,15 @@ public class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDel
         
         self.cameraInput = cameraInput
         
+        configurePhotoOutput(for: camera)
+        
         captureSession.startRunning()
         
         await MainActor.run {
             self.previewLayer = previewLayer
             self.selectedCamera = camera
             self.captureStatus = .ready
+            self.applyDefaultMirroring(for: camera)
         }
     }
     
@@ -147,9 +160,48 @@ public class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDel
         captureSession.commitConfiguration()
         
         let activeCamera = cameraInput?.device
+        if let activeCamera {
+            configurePhotoOutput(for: activeCamera)
+        }
+        
         await MainActor.run {
             self.selectedCamera = activeCamera
+            if let activeCamera {
+                self.applyDefaultMirroring(for: activeCamera)
+            }
         }
+    }
+    
+    /// Allows capturing at the camera sensor's maximum resolution (particularly relevant for Continuity Camera).
+    private func configurePhotoOutput(for camera: AVCaptureDevice)
+    {
+        let supportedDimensions = camera.activeFormat.supportedMaxPhotoDimensions
+        if let maxDimensions = supportedDimensions.max(by: { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }),
+           maxDimensions.width != photoOutput.maxPhotoDimensions.width || maxDimensions.height != photoOutput.maxPhotoDimensions.height {
+            photoOutput.maxPhotoDimensions = maxDimensions
+        }
+        
+        // Captured photos are never mirrored, regardless of the preview's mirroring
+        if let connection = photoOutput.connection(with: .video), connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = false
+        }
+    }
+    
+    @MainActor
+    private func applyDefaultMirroring(for camera: AVCaptureDevice)
+    {
+        // Only the built-in camera's preview shows a mirror image by default
+        isMirrored = camera.deviceType == .builtInWideAngleCamera
+    }
+    
+    /// Applies the current mirroring setting to the live preview.
+    @MainActor
+    private func applyMirroring()
+    {
+        guard let connection = previewLayer?.connection, connection.isVideoMirroringSupported else { return }
+        connection.automaticallyAdjustsVideoMirroring = false
+        connection.isVideoMirrored = isMirrored
     }
     
     /// Keeps `availableCameras` up to date and switches away from a camera that gets
@@ -217,9 +269,16 @@ public class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDel
     
     public func capturePhoto() async throws
     {
+        // The active format may have changed since configuration (e.g. a Continuity Camera
+        // switching between landscape and portrait), so refresh the maximum photo resolution
+        if let camera = cameraInput?.device {
+            configurePhotoOutput(for: camera)
+        }
+        
         let data = try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             let settings = AVCapturePhotoSettings()
+            settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
             photoOutput.capturePhoto(with: settings, delegate: self)
         }
         

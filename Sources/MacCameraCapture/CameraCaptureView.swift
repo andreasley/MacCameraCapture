@@ -32,8 +32,13 @@ public struct CameraCaptureView: View
                 case .livePreview:
                     CameraPreview(cameraController: cameraController, labels: labels)
                         .overlay(alignment: .topTrailing) {
-                            cameraPicker
+                            if cameraController.captureStatus != .initializing {
+                                HStack(spacing: 16) {
+                                    flipButton
+                                    cameraPicker
+                                }
                                 .padding()
+                            }
                         }
                 case .capturedPhoto(let capturedPhoto):
                     PhotoPreview(image: capturedPhoto)
@@ -77,6 +82,23 @@ public struct CameraCaptureView: View
         }
     }
     
+    /// A button to flip the live preview horizontally (captured photos are never mirrored).
+    @ViewBuilder
+    private var flipButton: some View {
+        if cameraController.captureStatus == .ready {
+            Button {
+                cameraController.isMirrored.toggle()
+            } label: {
+                Image(systemName: "trapezoid.and.line.vertical")
+                    .font(.title2)
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.white)
+            .help(labels.flipImage)
+            .accessibilityLabel(labels.flipImage)
+        }
+    }
+    
     private var selectedCameraID: Binding<String> {
         Binding {
             cameraController.selectedCamera?.uniqueID ?? ""
@@ -90,13 +112,14 @@ public struct CameraCaptureView: View
     
     public struct LocalizedLabels
     {
-        public init(save: String, cancel: String, initializingCamera: String, cameraNotAvailable: String, selectCamera: String = "Select Camera")
+        public init(save: String, cancel: String, initializingCamera: String, cameraNotAvailable: String, selectCamera: String = "Select Camera", flipImage: String = "Flip Image")
         {
             self.save = save
             self.cancel = cancel
             self.initializingCamera = initializingCamera
             self.cameraNotAvailable = cameraNotAvailable
             self.selectCamera = selectCamera
+            self.flipImage = flipImage
         }
         
         let save: String
@@ -104,6 +127,7 @@ public struct CameraCaptureView: View
         let initializingCamera: String
         let cameraNotAvailable: String
         let selectCamera: String
+        let flipImage: String
     }
 
     @MainActor
