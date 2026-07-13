@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 @MainActor
 public struct CameraCaptureView: View
@@ -30,6 +31,10 @@ public struct CameraCaptureView: View
                 switch status {
                 case .livePreview:
                     CameraPreview(cameraController: cameraController, labels: labels)
+                        .overlay(alignment: .topTrailing) {
+                            cameraPicker
+                                .padding()
+                        }
                 case .capturedPhoto(let capturedPhoto):
                     PhotoPreview(image: capturedPhoto)
                 }
@@ -46,20 +51,59 @@ public struct CameraCaptureView: View
         .frame(minWidth: 600, minHeight: 400)
     }
     
+    /// A menu to switch between the available cameras, shown only when there is a choice.
+    @ViewBuilder
+    private var cameraPicker: some View {
+        if cameraController.availableCameras.count > 1 {
+            Menu {
+                Picker(labels.selectCamera, selection: selectedCameraID) {
+                    ForEach(cameraController.availableCameras, id: \.uniqueID) { camera in
+                        Text(camera.localizedName)
+                            .tag(camera.uniqueID)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath.camera")
+                    .font(.title2)
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .foregroundColor(.white)
+            .help(labels.selectCamera)
+            .accessibilityLabel(labels.selectCamera)
+        }
+    }
+    
+    private var selectedCameraID: Binding<String> {
+        Binding {
+            cameraController.selectedCamera?.uniqueID ?? ""
+        } set: { newID in
+            guard let camera = cameraController.availableCameras.first(where: { $0.uniqueID == newID }) else { return }
+            Task {
+                await cameraController.selectCamera(camera)
+            }
+        }
+    }
+    
     public struct LocalizedLabels
     {
-        public init(save: String, cancel: String, initializingCamera: String, cameraNotAvailable: String)
+        public init(save: String, cancel: String, initializingCamera: String, cameraNotAvailable: String, selectCamera: String = "Select Camera")
         {
             self.save = save
             self.cancel = cancel
             self.initializingCamera = initializingCamera
             self.cameraNotAvailable = cameraNotAvailable
+            self.selectCamera = selectCamera
         }
         
         let save: String
         let cancel: String
         let initializingCamera: String
         let cameraNotAvailable: String
+        let selectCamera: String
     }
 
     @MainActor

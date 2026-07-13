@@ -8,7 +8,7 @@ struct CameraPreview : View
 
     var body: some View {
         Group {
-            if let previewLayer = cameraController?.previewLayer {
+            if cameraController?.captureStatus == .ready, let previewLayer = cameraController?.previewLayer {
                 AVCaptureVideoPreviewLayerViewRepresentable(previewLayer: previewLayer)
                     .scaleEffect(x: -1, y: 1)
             } else if cameraController?.captureStatus == .initializing {
