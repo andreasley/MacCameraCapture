@@ -8,6 +8,8 @@ struct MacCameraCaptureTesterApp: App
     var body: some Scene {
         WindowGroup {
             ContentView()
+        }.commands {
+            ImportFromDevicesCommands()
         }
     }
 }
